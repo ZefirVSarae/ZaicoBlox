@@ -1,773 +1,557 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZaicoBloxDemo</title>
-    <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #1e1e24;
-            color: #fff;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            user-select: none;
-            touch-action: none;
-        }
-        #toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px;
-            background: #2b2b36;
-            width: 100%;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            z-index: 10;
-        }
-        .tool-btn {
-            background: #3a3a48;
-            border: 2px solid transparent;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-            font-size: 14px;
-        }
-        .tool-btn:hover { background: #4d4d5e; }
-        .tool-btn.active { border-color: #00ff88; background: #254235; }
-        
-        .special-btn {
-            background: #8b5cf6;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-left: 5px;
-        }
-        .special-btn:hover { background: #7c3aed; }
-        
-        .mode-btn {
-            background: #007bff;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-left: 10px;
-            font-size: 14px;
-        }
-        .mode-btn:hover { background: #0056b3; }
-        .mode-btn.play { background: #ff0055; }
-        .mode-btn.play:hover { background: #cc0044; }
-        
-        #game-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            overflow: hidden;
-            background: #121216;
-            position: relative;
-        }
-        svg {
-            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
-            width: 100%;
-            height: 100%;
-            cursor: crosshair;
-        }
-        svg.playing { cursor: default; }
-        svg.panning { cursor: grab; }
-        svg.panning:active { cursor: grabbing; }
-        svg.info-mode { cursor: help; }
-        
-        #mobile-controls {
-            position: absolute;
-            bottom: calc(clamp(15px, 5vh, 40px) + 150px);
-            left: 0;
-            width: 100%;
-            display: none;
-            justify-content: space-between;
-            padding: 0 clamp(15px, 5vw, 40px);
-            box-sizing: border-box;
-            z-index: 20;
-            pointer-events: none;
-        }
-        #mobile-controls.active { display: flex; }
-        .controls-group { display: flex; gap: clamp(10px, 3vw, 25px); }
-        .m-btn {
-            pointer-events: auto;
-            width: clamp(70px, 15vw, 100px);
-            height: clamp(70px, 15vw, 100px);
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: clamp(30px, 7vw, 45px);
-            color: white;
-            backdrop-filter: blur(4px);
-            user-select: none;
-            cursor: pointer;
-        }
-        .m-btn:active { background: rgba(255, 255, 255, 0.5); }
-
-        #script-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        #script-content {
-            background: #2b2b36;
-            width: 95%; height: 90%;
-            display: flex;
-            flex-direction: column;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        #script-header {
-            padding: 15px; background: #1e1e24;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        #script-header h3 { margin: 0; color: #00ff88; font-size: 18px; }
-        .close-btn {
-            background: #ff0055; color: white; border: none;
-            padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
-        }
-        .close-btn:hover { background: #cc0044; }
-        #script-body {
-            display: flex; flex: 1; overflow: hidden; flex-direction: row;
-        }
-        #api-reference {
-            flex: 1; background: #1a1a20; color: #d1d1d1;
-            padding: 15px; overflow-y: auto; border-right: 2px solid #2b2b36;
-            font-size: 13px; line-height: 1.4;
-        }
-        #api-reference h4 { margin-top: 0; color: #8b5cf6; font-size: 16px; margin-bottom: 10px; }
-        #api-reference h5 { color: #00d4ff; margin: 15px 0 5px 0; font-size: 14px; }
-        .api-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #2b2b36; }
-        .api-code { color: #00ff88; font-family: 'Consolas', monospace; font-weight: bold; display: block; margin-bottom: 3px; }
-        
-        #script-editor {
-            flex: 1.5; background: #121216; color: #f8f8f2;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 15px; padding: 15px; border: none; resize: none; outline: none;
-            white-space: pre; tab-size: 4;
-        }
-        #lua-console {
-            flex: 1; background: #0a0a0c; color: #a1ef9b;
-            font-family: 'Consolas', monospace; font-size: 13px;
-            padding: 15px; overflow-y: auto; border-left: 2px solid #2b2b36;
-        }
-        .console-msg { margin-bottom: 5px; word-wrap: break-word; }
-        .console-err { color: #ff5555; }
-        .console-sys { color: #888; }
-
-        #tooltip {
-            display: none; position: absolute; background: rgba(0,0,0,0.8);
-            color: #00ff88; padding: 5px 10px; border-radius: 5px;
-            pointer-events: none; z-index: 100; font-family: monospace; font-weight: bold;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ZaicoBloxDemo</title>
+<script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
+<style>
+body { margin: 0; padding: 0; background: #1e1e24; color: #fff; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; user-select: none; touch-action: none; }
+#toolbar { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #2b2b36; width: 100%; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 10; }
+.tool-btn { background: #3a3a48; border: 2px solid transparent; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 14px; }
+.tool-btn:hover { background: #4d4d5e; }
+.tool-btn.active { border-color: #00ff88; background: #254235; }
+.special-btn { background: #8b5cf6; border: none; padding: 8px 15px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; margin-left: 5px; }
+.special-btn:hover { background: #7c3aed; }
+.mode-btn { background: #007bff; border: none; padding: 8px 20px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; margin-left: 10px; font-size: 14px; }
+.mode-btn:hover { background: #0056b3; }
+.mode-btn.play { background: #ff0055; }
+.mode-btn.play:hover { background: #cc0044; }
+#game-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; overflow: hidden; background: #121216; position: relative; }
+svg { background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%); width: 100%; height: 100%; cursor: crosshair; }
+svg.playing { cursor: default; }
+svg.panning { cursor: grab; }
+svg.panning:active { cursor: grabbing; }
+svg.info-mode { cursor: help; }
+#mobile-controls { position: absolute; bottom: calc(clamp(15px, 5vh, 40px) + 150px); left: 0; width: 100%; display: none; justify-content: space-between; padding: 0 clamp(15px, 5vw, 40px); box-sizing: border-box; z-index: 20; pointer-events: none; }
+#mobile-controls.active { display: flex; }
+.controls-group { display: flex; gap: clamp(10px, 3vw, 25px); }
+.m-btn { pointer-events: auto; width: clamp(70px, 15vw, 100px); height: clamp(70px, 15vw, 100px); background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: clamp(30px, 7vw, 45px); color: white; backdrop-filter: blur(4px); user-select: none; cursor: pointer; }
+.m-btn:active { background: rgba(255, 255, 255, 0.5); }
+#script-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+#script-content { background: #2b2b36; width: 95%; height: 90%; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+#script-header { padding: 15px; background: #1e1e24; display: flex; justify-content: space-between; align-items: center; }
+#script-header h3 { margin: 0; color: #00ff88; font-size: 18px; }
+.close-btn { background: #ff0055; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.close-btn:hover { background: #cc0044; }
+#script-body { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
+#api-reference { flex: 1; background: #1a1a20; color: #d1d1d1; padding: 15px; overflow-y: auto; border-right: 2px solid #2b2b36; font-size: 13px; line-height: 1.4; }
+#api-reference h4 { margin-top: 0; color: #8b5cf6; font-size: 16px; margin-bottom: 10px; }
+#api-reference h5 { color: #00d4ff; margin: 15px 0 5px 0; font-size: 14px; }
+.api-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #2b2b36; }
+.api-code { color: #00ff88; font-family: 'Consolas', monospace; font-weight: bold; display: block; margin-bottom: 3px; }
+#script-editor { flex: 1.5; background: #121216; color: #f8f8f2; font-family: 'Consolas', 'Courier New', monospace; font-size: 15px; padding: 15px; border: none; resize: none; outline: none; white-space: pre; tab-size: 4; }
+#lua-console { flex: 1; background: #0a0a0c; color: #a1ef9b; font-family: 'Consolas', monospace; font-size: 13px; padding: 15px; overflow-y: auto; border-left: 2px solid #2b2b36; }
+.console-msg { margin-bottom: 5px; word-wrap: break-word; }
+.console-err { color: #ff5555; }
+.console-sys { color: #888; }
+#tooltip { display: none; position: absolute; background: rgba(0,0,0,0.8); color: #00ff88; padding: 5px 10px; border-radius: 5px; pointer-events: none; z-index: 100; font-family: monospace; font-weight: bold; }
+</style>
 </head>
 <body>
-
-    <div id="toolbar">
-        <button class="tool-btn active" data-tool="grass">Трава</button>
-        <button class="tool-btn" data-tool="dirt">Земля</button>
-        <button class="tool-btn" data-tool="spike">Шипы</button>
-        <button class="tool-btn" data-tool="trigger" style="border-bottom: 2px solid #ff00ff;">Триггер</button>
-        <button class="tool-btn" data-tool="spawn">Старт</button>
-        <button class="tool-btn" data-tool="eraser">Ластик</button>
-        <button class="tool-btn" data-tool="camera">Камера</button>
-        <button class="tool-btn" data-tool="info" style="border-bottom: 2px solid #00d4ff;">ID Инфо</button>
-        
-        <button class="special-btn" onclick="openScripts()">📝 Lua Скрипты</button>
-        <button id="modeBtn" class="mode-btn">Играть</button>
-    </div>
-
-    <div id="game-container">
-        <svg id="gameCanvas" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice"></svg>
-        
-        <div id="mobile-controls">
-            <div class="controls-group">
-                <div class="m-btn" id="btn-left">◀</div>
-                <div class="m-btn" id="btn-right">▶</div>
-            </div>
-            <div class="controls-group">
-                <div class="m-btn" id="btn-jump">▲</div>
-            </div>
-        </div>
-        
-        <div id="tooltip"></div>
-    </div>
-
-    <div id="script-modal">
-        <div id="script-content">
-            <div id="script-header">
-                <h3>Скрипт</h3>
-                <button class="close-btn" onclick="closeScripts()">Сохранить и Закрыть</button>
-            </div>
-            <div id="script-body">
-                <div id="api-reference">
-                    <h4>Справочник API</h4>
-                    
-                    <h5>Управление блоками</h5>
-                    <div class="api-item">
-                        <span class="api-code">spawn(type, x, y)</span>
-                        Создает блок. Типы: "grass", "dirt", "spike", "trigger".
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">delete(id)</span>
-                        Удаляет блок по его уникальному ID.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">move_to(id, x, y)</span>
-                        Телепортирует блок на указанные координаты x и y.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">move_by(id, dx, dy)</span>
-                        Сдвигает блок на dx по горизонтали и dy по вертикали.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">set_color(id, hexColor)</span>
-                        Меняет цвет блока. Пример цвета: "#ff0000".
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">get_x(id) / get_y(id)</span>
-                        Возвращает текущую координату X или Y блока.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">get_type(id)</span>
-                        Возвращает тип блока в виде строки.
-                    </div>
-
-                    <h5>Управление игроком</h5>
-                    <div class="api-item">
-                        <span class="api-code">player_jump(power)</span>
-                        Заставляет игрока подпрыгнуть. Чем выше число, тем сильнее.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">player_kill()</span>
-                        Убивает игрока и отправляет на точку спавна.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">player_set_pos(x, y)</span>
-                        Мгновенно перемещает игрока на новые координаты.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">player_get_x() / player_get_y()</span>
-                        Возвращает координаты игрока.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">set_speed(speed)</span>
-                        Устанавливает максимальную скорость бега (по умолчанию 6).
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">set_gravity(grav)</span>
-                        Устанавливает силу гравитации (по умолчанию 0.6).
-                    </div>
-
-                    <h5>События (Писать в коде)</h5>
-                    <div class="api-item">
-                        <span class="api-code">function OnStart()</span>
-                        Вызывается один раз при нажатии кнопки "Играть".
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">function OnTick()</span>
-                        Вызывается каждый кадр игры. Осторожно с тяжелым кодом.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">function OnTouch(id)</span>
-                        Вызывается, когда игрок касается любого физического блока.
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">function OnTrigger(id)</span>
-                        Вызывается, когда игрок касается блока типа "trigger".
-                    </div>
-                    <div class="api-item">
-                        <span class="api-code">function OnDeath()</span>
-                        Вызывается в момент смерти игрока (падение или шипы).
-                    </div>
-                    
-                    <h5>Прочее</h5>
-                    <div class="api-item">
-                        <span class="api-code">print("текст")</span>
-                        Выводит сообщение в игровую консоль справа.
-                    </div>
-                </div>
-                
-                <textarea id="script-editor" spellcheck="false"></textarea>
-                
-                <div id="lua-console">
-                    <div class="console-sys">Система: Консоль готова</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const svgNS = "http://www.w3.org/2000/svg";
-        const svgCanvas = document.getElementById('gameCanvas');
-        const modeBtn = document.getElementById('modeBtn');
-        const toolBtns = document.querySelectorAll('.tool-btn');
-        const mobileControls = document.getElementById('mobile-controls');
-        const tooltip = document.getElementById('tooltip');
-        
-        const TILE_SIZE = 40;
-        const COLS = 150;
-        const ROWS = 75;
-        const VIEW_W = 1000;
-        const VIEW_H = 600;
-        
-        let blocks = {};
-        let blockCounter = 0;
-        let levelBackup = null;
-
-        let currentTool = 'grass';
-        let isEditMode = true;
-        let isDrawing = false;
-        let isPanning = false;
-        
-        let camX = 0;
-        let camY = 0;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
-
-        let spawnPoint = { x: 120, y: 360 }; 
-        
-        const player = {
-            x: 120, y: 360,
-            width: 40, height: 80,
-            vx: 0, vy: 0,
-            speed: 6, jumpPower: -14, gravity: 0.6, friction: 0.8,
-            element: null,
-            grounded: false,
-            facing: 1
-        };
-
-        const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, a: false, d: false, w: false, 'ф': false, 'в': false, 'ц': false };
-        let gameLoopId;
-
-        const tileDefs = {
-            grass: `<rect x="0" y="0" width="40" height="40" fill="#8B4513" rx="4" class="c-shape"/><path d="M 4 0 L 36 0 Q 40 0 40 4 L 40 12 L 0 12 L 0 4 Q 0 0 4 0 Z" fill="#2ed853" class="c-shape"/>`,
-            dirt: `<rect x="0" y="0" width="40" height="40" fill="#8B4513" rx="4" class="c-shape"/><circle cx="10" cy="10" r="2" fill="#7a3c10"/><circle cx="30" cy="25" r="3" fill="#7a3c10"/><circle cx="15" cy="30" r="2" fill="#7a3c10"/>`,
-            spike: `<rect x="0" y="20" width="40" height="20" fill="#2b2b2b" rx="2" class="c-shape"/><path d="M5 20 L12 2 L19 20 M21 20 L28 2 L35 20" stroke="#e0e0e0" stroke-width="2" fill="#a0a0a0" stroke-linejoin="round" class="c-shape"/>`,
-            trigger: `<rect x="0" y="0" width="40" height="40" fill="rgba(255, 0, 255, 0.2)" stroke="#ff00ff" stroke-width="2" stroke-dasharray="4" class="c-shape"/><text x="20" y="25" fill="#ff00ff" font-size="12" text-anchor="middle" font-weight="bold">TRIG</text>`
-        };
-
-        const gridGroup = document.createElementNS(svgNS, "g");
-        const tilesGroup = document.createElementNS(svgNS, "g");
-        const entitiesGroup = document.createElementNS(svgNS, "g");
-        svgCanvas.appendChild(gridGroup);
-        svgCanvas.appendChild(tilesGroup);
-        svgCanvas.appendChild(entitiesGroup);
-
-        const spawnElement = document.createElementNS(svgNS, "g");
-        spawnElement.innerHTML = `<rect x="0" y="0" width="40" height="40" fill="rgba(0, 255, 128, 0.4)" stroke="#00ff88" stroke-width="3" stroke-dasharray="4"/><text x="20" y="25" fill="#fff" font-size="16" text-anchor="middle" font-weight="bold" pointer-events="none">P</text>`;
-        entitiesGroup.appendChild(spawnElement);
-
-        player.element = document.createElementNS(svgNS, "g");
-        const playerImg = document.createElementNS(svgNS, "image");
-        playerImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", "https://www.dropbox.com/scl/fi/me1gt4akn3aj2xw39rehx/160_20260713170653.png?rlkey=u4teia4gdnnby27noydlaan2g&st=s2grlxco&dl=1");
-        playerImg.setAttribute("href", "https://www.dropbox.com/scl/fi/me1gt4akn3aj2xw39rehx/160_20260713170653.png?rlkey=u4teia4gdnnby27noydlaan2g&st=s2grlxco&dl=1");
-        playerImg.setAttribute("x", "-20"); playerImg.setAttribute("width", "80"); playerImg.setAttribute("height", "80");
-        player.element.appendChild(playerImg);
-        player.element.style.display = "none";
-        entitiesGroup.appendChild(player.element);
-
-        function initGrid() {
-            for (let i = 0; i <= COLS; i++) {
-                let line = document.createElementNS(svgNS, "line");
-                line.setAttribute("x1", i * TILE_SIZE); line.setAttribute("y1", 0);
-                line.setAttribute("x2", i * TILE_SIZE); line.setAttribute("y2", ROWS * TILE_SIZE);
-                line.setAttribute("stroke", "rgba(255,255,255,0.1)");
-                gridGroup.appendChild(line);
-            }
-            for (let i = 0; i <= ROWS; i++) {
-                let line = document.createElementNS(svgNS, "line");
-                line.setAttribute("x1", 0); line.setAttribute("y1", i * TILE_SIZE);
-                line.setAttribute("x2", COLS * TILE_SIZE); line.setAttribute("y2", i * TILE_SIZE);
-                line.setAttribute("stroke", "rgba(255,255,255,0.1)");
-                gridGroup.appendChild(line);
-            }
-        }
-
-        function updateSpawnVisual() {
-            spawnElement.setAttribute("transform", `translate(${spawnPoint.x}, ${spawnPoint.y})`);
-        }
-
-        function generateBlockId() {
-            return "blk_" + (blockCounter++) + "_" + Math.floor(Math.random()*1000);
-        }
-
-        function placeBlock(type, x, y) {
-            deleteBlockAt(x, y);
-            let id = generateBlockId();
-            let g = document.createElementNS(svgNS, "g");
-            g.setAttribute("transform", `translate(${x}, ${y})`);
-            g.innerHTML = tileDefs[type] || tileDefs['grass'];
-            tilesGroup.appendChild(g);
-            blocks[id] = { id: id, type: type, x: x, y: y, element: g };
-            return id;
-        }
-
-        function deleteBlockAt(x, y) {
-            for(let id in blocks) {
-                if (blocks[id].x === x && blocks[id].y === y) {
-                    if(blocks[id].element) blocks[id].element.remove();
-                    delete blocks[id];
-                }
-            }
-        }
-
-        toolBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if(btn.dataset.tool) {
-                    toolBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentTool = btn.dataset.tool;
-                    
-                    svgCanvas.classList.remove('panning', 'info-mode');
-                    if(currentTool === 'camera') svgCanvas.classList.add('panning');
-                    if(currentTool === 'info') svgCanvas.classList.add('info-mode');
-                }
-            });
-        });
-
-        function getRealCoords(evt) {
-            let cx = evt.clientX, cy = evt.clientY;
-            if (evt.touches && evt.touches.length > 0) { cx = evt.touches[0].clientX; cy = evt.touches[0].clientY; }
-            const pt = svgCanvas.createSVGPoint();
-            pt.x = cx; pt.y = cy;
-            const ctm = svgCanvas.getScreenCTM();
-            let svgP = ctm ? pt.matrixTransform(ctm.inverse()) : {x:0, y:0};
-            return { x: svgP.x, y: svgP.y, rawX: cx, rawY: cy };
-        }
-
-        function updateCameraView() {
-            camX = Math.max(0, Math.min(camX, COLS * TILE_SIZE - VIEW_W));
-            camY = Math.max(0, Math.min(camY, ROWS * TILE_SIZE - VIEW_H));
-            svgCanvas.setAttribute("viewBox", `${camX} ${camY} ${VIEW_W} ${VIEW_H}`);
-        }
-
-        function interact(evt) {
-            if (!isEditMode) return;
-            const coords = getRealCoords(evt);
-            
-            if (currentTool === 'camera') {
-                if (isPanning) {
-                    const rect = svgCanvas.getBoundingClientRect();
-                    const scale = Math.max(VIEW_W / rect.width, VIEW_H / rect.height);
-                    camX -= (coords.rawX - lastMouseX) * scale;
-                    camY -= (coords.rawY - lastMouseY) * scale;
-                    updateCameraView();
-                    lastMouseX = coords.rawX; lastMouseY = coords.rawY;
-                }
-                return;
-            }
-
-            if (currentTool === 'info') return;
-
-            const col = Math.floor(coords.x / TILE_SIZE);
-            const row = Math.floor(coords.y / TILE_SIZE);
-            const bx = col * TILE_SIZE;
-            const by = row * TILE_SIZE;
-
-            if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
-
-            if (currentTool === 'spawn') {
-                spawnPoint.x = bx; spawnPoint.y = by; updateSpawnVisual();
-            } else if (currentTool === 'eraser') {
-                deleteBlockAt(bx, by);
-            } else {
-                let exists = false;
-                for(let id in blocks) {
-                    if (blocks[id].x === bx && blocks[id].y === by && blocks[id].type === currentTool) exists = true;
-                }
-                if(!exists) placeBlock(currentTool, bx, by);
-            }
-        }
-
-        function handlePointerDown(e) {
-            if (e.target.closest('#mobile-controls') || e.target.closest('#toolbar') || e.target.closest('#script-modal')) return;
-            const coords = getRealCoords(e);
-            if (currentTool === 'camera') {
-                isPanning = true; lastMouseX = coords.rawX; lastMouseY = coords.rawY;
-            } else {
-                isDrawing = true; interact(e);
-            }
-        }
-
-        function handlePointerMove(e) {
-            if (isDrawing || isPanning) interact(e);
-            
-            if (currentTool === 'info' && isEditMode) {
-                const coords = getRealCoords(e);
-                let found = null;
-                for(let id in blocks) {
-                    if (coords.x >= blocks[id].x && coords.x <= blocks[id].x + TILE_SIZE &&
-                        coords.y >= blocks[id].y && coords.y <= blocks[id].y + TILE_SIZE) {
-                        found = blocks[id]; break;
-                    }
-                }
-                if (found) {
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = (e.clientX + 15) + 'px';
-                    tooltip.style.top = (e.clientY + 15) + 'px';
-                    tooltip.innerHTML = `ID: ${found.id}<br>Type: ${found.type}`;
-                } else {
-                    tooltip.style.display = 'none';
-                }
-            } else {
-                tooltip.style.display = 'none';
-            }
-        }
-
-        function handlePointerUp() { isDrawing = false; isPanning = false; }
-
-        svgCanvas.addEventListener('mousedown', handlePointerDown);
-        window.addEventListener('mousemove', handlePointerMove);
-        window.addEventListener('mouseup', handlePointerUp);
-        svgCanvas.addEventListener('touchstart', (e) => { if(isEditMode && !e.target.closest('#toolbar')) e.preventDefault(); handlePointerDown(e); }, { passive: false });
-        window.addEventListener('touchmove', (e) => { if((isDrawing || isPanning) && isEditMode) e.preventDefault(); handlePointerMove(e); }, { passive: false });
-        window.addEventListener('touchend', handlePointerUp);
-
-        window.addEventListener('keydown', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; });
-        window.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
-
-        const handleMobileControls = (e) => {
-            if (isEditMode) return;
-            keys.ArrowLeft = false; keys.ArrowRight = false; keys.ArrowUp = false;
-            for (let i = 0; i < e.touches.length; i++) {
-                const t = document.elementFromPoint(e.touches[i].clientX, e.touches[i].clientY);
-                if (!t) continue;
-                if (t.id === 'btn-left' || t.closest('#btn-left')) keys.ArrowLeft = true;
-                if (t.id === 'btn-right' || t.closest('#btn-right')) keys.ArrowRight = true;
-                if (t.id === 'btn-jump' || t.closest('#btn-jump')) keys.ArrowUp = true;
-            }
-        };
-        mobileControls.addEventListener('touchstart', (e) => { e.preventDefault(); handleMobileControls(e); }, { passive: false });
-        mobileControls.addEventListener('touchmove', (e) => { e.preventDefault(); handleMobileControls(e); }, { passive: false });
-        mobileControls.addEventListener('touchend', (e) => { e.preventDefault(); handleMobileControls(e); }, { passive: false });
-        
-        const setupMouseControl = (id, keyName) => {
-            const btn = document.getElementById(id);
-            btn.addEventListener('mousedown', (e) => { if (isEditMode) return; e.preventDefault(); keys[keyName] = true; });
-            btn.addEventListener('mouseup', () => keys[keyName] = false);
-            btn.addEventListener('mouseleave', () => keys[keyName] = false);
-        };
-        setupMouseControl('btn-left', 'ArrowLeft'); setupMouseControl('btn-right', 'ArrowRight'); setupMouseControl('btn-jump', 'ArrowUp');
-
-        let currentlyTouching = new Set();
-        let globalNewTouching = new Set();
-
-        modeBtn.addEventListener('click', () => {
-            isEditMode = !isEditMode;
-            if (isEditMode) {
-                modeBtn.textContent = "Играть";
-                modeBtn.classList.remove('play');
-                svgCanvas.classList.remove('playing');
-                if(currentTool === 'camera') svgCanvas.classList.add('panning');
-                gridGroup.style.display = "block";
-                spawnElement.style.display = "block";
-                player.element.style.display = "none";
-                mobileControls.classList.remove('active');
-                cancelAnimationFrame(gameLoopId);
-                
-                if (levelBackup) {
-                    tilesGroup.innerHTML = '';
-                    blocks = {};
-                    let parsed = JSON.parse(levelBackup);
-                    parsed.forEach(b => {
-                        let g = document.createElementNS(svgNS, "g");
-                        g.setAttribute("transform", `translate(${b.x}, ${b.y})`);
-                        g.innerHTML = tileDefs[b.type];
-                        tilesGroup.appendChild(g);
-                        blocks[b.id] = { id: b.id, type: b.type, x: b.x, y: b.y, element: g };
-                    });
-                    levelBackup = null;
-                }
-                document.getElementById('lua-console').innerHTML = '<div class="console-sys">Система: Режим редактора</div>';
-            } else {
-                modeBtn.textContent = "Редактор";
-                modeBtn.classList.add('play');
-                svgCanvas.classList.add('playing', 'info-mode');
-                svgCanvas.classList.remove('panning', 'info-mode');
-                gridGroup.style.display = "none";
-                spawnElement.style.display = "none";
-                player.element.style.display = "block";
-                mobileControls.classList.add('active');
-                
-                levelBackup = JSON.stringify(Object.values(blocks).map(b => ({id: b.id, type: b.type, x: b.x, y: b.y})));
-                
-                resetPlayer();
-                currentlyTouching.clear();
-                
-                runLua(document.getElementById('script-editor').value);
-                luaCall('OnStart');
-                
-                gameLoop();
-            }
-        });
-
-        function resetPlayer() {
-            player.x = spawnPoint.x + (TILE_SIZE - player.width) / 2;
-            player.y = spawnPoint.y + (TILE_SIZE - player.height) / 2;
-            player.vx = 0; player.vy = 0;
-            player.gravity = 0.6; player.speed = 6; player.jumpPower = -14;
-            updatePlayerVisual();
-        }
-
-        function updatePlayerVisual() {
-            if (player.vx < -0.1) player.facing = -1;
-            else if (player.vx > 0.1) player.facing = 1;
-            player.element.setAttribute("transform", `translate(${player.x}, ${player.y}) translate(${player.width/2}, 0) scale(${player.facing}, 1) translate(${-player.width/2}, 0)`);
-        }
-
-        function getAABB(x, y, w, h) { return { left: x, right: x + w, top: y, bottom: y + h }; }
-        function checkCollision(r1, r2) { return r1.left < r2.right && r1.right > r2.left && r1.top < r2.bottom && r1.bottom > r2.top; }
-
-        function gameLoop() {
-            if (isEditMode) return;
-            luaCall('OnTick');
-
-            if (keys.ArrowLeft || keys.a || keys['ф']) player.vx -= 1;
-            if (keys.ArrowRight || keys.d || keys['в']) player.vx += 1;
-            
-            player.vx *= player.friction;
-            if (Math.abs(player.vx) > player.speed) player.vx = Math.sign(player.vx) * player.speed;
-            if ((keys.ArrowUp || keys.w || keys['ц']) && player.grounded) {
-                player.vy = player.jumpPower; player.grounded = false;
-            }
-            player.vy += player.gravity;
-            if (player.vy > 25) player.vy = 25; 
-
-            globalNewTouching.clear();
-            
-            player.x += player.vx;
-            handleCollisions('x');
-            
-            player.y += player.vy;
-            player.grounded = false;
-            handleCollisions('y');
-
-            for(let id of globalNewTouching) {
-                if(!currentlyTouching.has(id)) {
-                    if (blocks[id]) {
-                        if (blocks[id].type === 'trigger') luaCall('OnTrigger', id);
-                        else luaCall('OnTouch', id);
-                    }
-                }
-            }
-            currentlyTouching = new Set(globalNewTouching);
-
-            if (player.y > ROWS * TILE_SIZE + 200) { luaCall('OnDeath'); resetPlayer(); }
-
-            updatePlayerVisual();
-            camX = player.x - VIEW_W / 2 + player.width / 2;
-            camY = player.y - VIEW_H / 2 + player.height / 2;
-            updateCameraView();
-
-            gameLoopId = requestAnimationFrame(gameLoop);
-        }
-
-        function handleCollisions(axis) {
-            let pBox = getAABB(player.x, player.y, player.width, player.height);
-            let nearby = [];
-            for(let key in blocks) {
-                let b = blocks[key];
-                if(Math.abs(b.x - player.x) < 150 && Math.abs(b.y - player.y) < 150) nearby.push(b);
-            }
-
-            for (let b of nearby) {
-                let tBox = getAABB(b.x, b.y, TILE_SIZE, TILE_SIZE);
-                if (b.type === 'spike') tBox = getAABB(b.x + 8, b.y + 20, TILE_SIZE - 16, TILE_SIZE - 20);
-                
-                if (checkCollision(pBox, tBox)) {
-                    globalNewTouching.add(b.id);
-                    
-                    if (b.type === 'trigger') continue;
-                    
-                    if (b.type === 'spike') {
-                        luaCall('OnDeath'); resetPlayer(); return;
-                    }
-
-                    if (axis === 'x') {
-                        if (player.vx > 0) player.x = tBox.left - player.width;
-                        else if (player.vx < 0) player.x = tBox.right;
-                        player.vx = 0;
-                        pBox = getAABB(player.x, player.y, player.width, player.height);
-                    } else if (axis === 'y') {
-                        if (player.vy > 0) { player.y = tBox.top - player.height; player.grounded = true; }
-                        else if (player.vy < 0) player.y = tBox.bottom;
-                        player.vy = 0;
-                        pBox = getAABB(player.x, player.y, player.width, player.height);
-                    }
-                }
-            }
-        }
-
-        function openScripts() { document.getElementById('script-modal').style.display = 'flex'; }
-        function closeScripts() { document.getElementById('script-modal').style.display = 'none'; }
-
-        window.lua_spawn = function(type, x, y) { return placeBlock(type, x, y); };
-        window.lua_delete = function(id) { deleteBlockAt(blocks[id]?.x, blocks[id]?.y); };
-        window.lua_move_to = function(id, x, y) {
-            if(blocks[id]) { blocks[id].x = x; blocks[id].y = y; blocks[id].element.setAttribute("transform", `translate(${x}, ${y})`); }
-        };
-        window.lua_move_by = function(id, dx, dy) {
-            if(blocks[id]) { blocks[id].x += dx; blocks[id].y += dy; blocks[id].element.setAttribute("transform", `translate(${blocks[id].x}, ${blocks[id].y})`); }
-        };
-        window.lua_set_color = function(id, color) {
-            if(blocks[id]) {
-                let els = blocks[id].element.querySelectorAll('.c-shape, rect, path, circle');
-                els.forEach(el => el.setAttribute("fill", color));
-            }
-        };
-        window.lua_get_x = function(id) { return blocks[id] ? blocks[id].x : 0; };
-        window.lua_get_y = function(id) { return blocks[id] ? blocks[id].y : 0; };
-        window.lua_get_type = function(id) { return blocks[id] ? blocks[id].type : ""; };
-        
-        window.lua_player_jump = function(p) { player.vy = -Math.abs(p); player.grounded = false; };
-        window.lua_player_kill = function() { luaCall('OnDeath'); resetPlayer(); };
-        window.lua_player_set_pos = function(x, y) { player.x = x; player.y = y; };
-        
-        window.lua_print = function(msg) {
-            const c = document.getElementById('lua-console');
-            c.innerHTML += `<div class="console-msg">> ${msg}</div>`;
-            c.scrollTop = c.scrollHeight;
-        };
-
-        function runLua(userScript) {
-            const consoleEl = document.getElementById('lua-console');
-            consoleEl.innerHTML = '<div class="console-sys">Система: Компиляция Lua...</div>';
-            
-            const wrapper = `
+<div id="toolbar">
+<button class="tool-btn active" data-tool="grass">Трава</button>
+<button class="tool-btn" data-tool="dirt">Земля</button>
+<button class="tool-btn" data-tool="spike">Шипы</button>
+<button class="tool-btn" data-tool="trigger" style="border-bottom: 2px solid #ff00ff;">Триггер</button>
+<button class="tool-btn" data-tool="spawn">Старт</button>
+<button class="tool-btn" data-tool="eraser">Ластик</button>
+<button class="tool-btn" data-tool="camera">Камера</button>
+<button class="tool-btn" data-tool="info" style="border-bottom: 2px solid #00d4ff;">ID Инфо</button>
+<button class="special-btn" onclick="openScripts()">📝 Lua Скрипты</button>
+<button class="special-btn" id="exportBtn" style="background: #00bcd4;">💾 Экспорт</button>
+<button class="special-btn" id="importBtn" style="background: #ff9800;">📂 Импорт</button>
+<input type="file" id="importFile" accept=".zbg" style="display: none;">
+<button id="modeBtn" class="mode-btn">Играть</button>
+</div>
+<div id="game-container">
+<svg id="gameCanvas" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice"></svg>
+<div id="mobile-controls">
+<div class="controls-group">
+<div class="m-btn" id="btn-left">◀</div>
+<div class="m-btn" id="btn-right">▶</div>
+</div>
+<div class="controls-group">
+<div class="m-btn" id="btn-jump">▲</div>
+</div>
+</div>
+<div id="tooltip"></div>
+</div>
+<div id="script-modal">
+<div id="script-content">
+<div id="script-header">
+<h3>Скрипт</h3>
+<button class="close-btn" onclick="closeScripts()">Сохранить и Закрыть</button>
+</div>
+<div id="script-body">
+<div id="api-reference">
+<h4>Справочник API</h4>
+<h5>Управление блоками</h5>
+<div class="api-item"><span class="api-code">spawn(type, x, y)</span> Создает блок. Типы: "grass", "dirt", "spike", "trigger". </div>
+<div class="api-item"><span class="api-code">delete(id)</span> Удаляет блок по его уникальному ID. </div>
+<div class="api-item"><span class="api-code">move_to(id, x, y)</span> Телепортирует блок на указанные координаты x и y. </div>
+<div class="api-item"><span class="api-code">move_by(id, dx, dy)</span> Сдвигает блок на dx по горизонтали и dy по вертикали. </div>
+<div class="api-item"><span class="api-code">set_color(id, hexColor)</span> Меняет цвет блока. Пример цвета: "#ff0000". </div>
+<div class="api-item"><span class="api-code">get_x(id) / get_y(id)</span> Возвращает текущую координату X или Y блока. </div>
+<div class="api-item"><span class="api-code">get_type(id)</span> Возвращает тип блока в виде строки. </div>
+<h5>Управление игроком</h5>
+<div class="api-item"><span class="api-code">player_jump(power)</span> Заставляет игрока подпрыгнуть. Чем выше число, тем сильнее. </div>
+<div class="api-item"><span class="api-code">player_kill()</span> Убивает игрока и отправляет на точку спавна. </div>
+<div class="api-item"><span class="api-code">player_set_pos(x, y)</span> Мгновенно перемещает игрока на новые координаты. </div>
+<div class="api-item"><span class="api-code">player_get_x() / player_get_y()</span> Возвращает координаты игрока. </div>
+<div class="api-item"><span class="api-code">set_speed(speed)</span> Устанавливает максимальную скорость бега (по умолчанию 6). </div>
+<div class="api-item"><span class="api-code">set_gravity(grav)</span> Устанавливает силу гравитации (по умолчанию 0.6). </div>
+<h5>События (Писать в коде)</h5>
+<div class="api-item"><span class="api-code">function OnStart()</span> Вызывается один раз при нажатии кнопки "Играть". </div>
+<div class="api-item"><span class="api-code">function OnTick()</span> Вызывается каждый кадр игры. Осторожно с тяжелым кодом. </div>
+<div class="api-item"><span class="api-code">function OnTouch(id)</span> Вызывается, когда игрок касается любого физического блока. </div>
+<div class="api-item"><span class="api-code">function OnTrigger(id)</span> Вызывается, когда игрок касается блока типа "trigger". </div>
+<div class="api-item"><span class="api-code">function OnDeath()</span> Вызывается в момент смерти игрока (падение или шипы). </div>
+<h5>Прочее</h5>
+<div class="api-item"><span class="api-code">print("текст")</span> Выводит сообщение в игровую консоль справа. </div>
+</div>
+<textarea id="script-editor" spellcheck="false"></textarea>
+<div id="lua-console">
+<div class="console-sys">Система: Консоль готова</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+const svgCanvas = document.getElementById('gameCanvas');
+const modeBtn = document.getElementById('modeBtn');
+const toolBtns = document.querySelectorAll('.tool-btn');
+const mobileControls = document.getElementById('mobile-controls');
+const tooltip = document.getElementById('tooltip');
+const TILE_SIZE = 40;
+const COLS = 150;
+const ROWS = 75;
+const VIEW_W = 1000;
+const VIEW_H = 600;
+let blocks = {};
+let blockCounter = 0;
+let levelBackup = null;
+let currentTool = 'grass';
+let isEditMode = true;
+let isDrawing = false;
+let isPanning = false;
+let camX = 0;
+let camY = 0;
+let lastMouseX = 0;
+let lastMouseY = 0;
+let spawnPoint = { x: 120, y: 360 };
+const player = { x: 120, y: 360, width: 40, height: 80, vx: 0, vy: 0, speed: 6, jumpPower: -14, gravity: 0.6, friction: 0.8, element: null, grounded: false, facing: 1 };
+const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, a: false, d: false, w: false, 'ф': false, 'в': false, 'ц': false };
+let gameLoopId;
+const tileDefs = {
+grass: `<rect x="0" y="0" width="40" height="40" fill="#8B4513" rx="4" class="c-shape"/><path d="M 4 0 L 36 0 Q 40 0 40 4 L 40 12 L 0 12 L 0 4 Q 0 0 4 0 Z" fill="#2ed853" class="c-shape"/>`,
+dirt: `<rect x="0" y="0" width="40" height="40" fill="#8B4513" rx="4" class="c-shape"/><circle cx="10" cy="10" r="2" fill="#7a3c10"/><circle cx="30" cy="25" r="3" fill="#7a3c10"/><circle cx="15" cy="30" r="2" fill="#7a3c10"/>`,
+spike: `<rect x="0" y="20" width="40" height="20" fill="#2b2b2b" rx="2" class="c-shape"/><path d="M5 20 L12 2 L19 20 M21 20 L28 2 L35 20" stroke="#e0e0e0" stroke-width="2" fill="#a0a0a0" stroke-linejoin="round" class="c-shape"/>`,
+trigger: `<rect x="0" y="0" width="40" height="40" fill="rgba(255, 0, 255, 0.2)" stroke="#ff00ff" stroke-width="2" stroke-dasharray="4" class="c-shape"/><text x="20" y="25" fill="#ff00ff" font-size="12" text-anchor="middle" font-weight="bold">TRIG</text>`
+};
+const gridGroup = document.createElementNS(svgNS, "g");
+const tilesGroup = document.createElementNS(svgNS, "g");
+const entitiesGroup = document.createElementNS(svgNS, "g");
+svgCanvas.appendChild(gridGroup);
+svgCanvas.appendChild(tilesGroup);
+svgCanvas.appendChild(entitiesGroup);
+const spawnElement = document.createElementNS(svgNS, "g");
+spawnElement.innerHTML = `<rect x="0" y="0" width="40" height="40" fill="rgba(0, 255, 128, 0.4)" stroke="#00ff88" stroke-width="3" stroke-dasharray="4"/><text x="20" y="25" fill="#fff" font-size="16" text-anchor="middle" font-weight="bold" pointer-events="none">P</text>`;
+entitiesGroup.appendChild(spawnElement);
+player.element = document.createElementNS(svgNS, "g");
+const playerImg = document.createElementNS(svgNS, "image");
+playerImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", "https://www.dropbox.com/scl/fi/me1gt4akn3aj2xw39rehx/160_20260713170653.png?rlkey=u4teia4gdnnby27noydlaan2g&st=s2grlxco&dl=1");
+playerImg.setAttribute("href", "https://www.dropbox.com/scl/fi/me1gt4akn3aj2xw39rehx/160_20260713170653.png?rlkey=u4teia4gdnnby27noydlaan2g&st=s2grlxco&dl=1");
+playerImg.setAttribute("x", "-20");
+playerImg.setAttribute("width", "80");
+playerImg.setAttribute("height", "80");
+player.element.appendChild(playerImg);
+player.element.style.display = "none";
+entitiesGroup.appendChild(player.element);
+function initGrid() {
+for (let i = 0; i <= COLS; i++) {
+let line = document.createElementNS(svgNS, "line");
+line.setAttribute("x1", i * TILE_SIZE);
+line.setAttribute("y1", 0);
+line.setAttribute("x2", i * TILE_SIZE);
+line.setAttribute("y2", ROWS * TILE_SIZE);
+line.setAttribute("stroke", "rgba(255,255,255,0.1)");
+gridGroup.appendChild(line);
+}
+for (let i = 0; i <= ROWS; i++) {
+let line = document.createElementNS(svgNS, "line");
+line.setAttribute("x1", 0);
+line.setAttribute("y1", i * TILE_SIZE);
+line.setAttribute("x2", COLS * TILE_SIZE);
+line.setAttribute("y2", i * TILE_SIZE);
+line.setAttribute("stroke", "rgba(255,255,255,0.1)");
+gridGroup.appendChild(line);
+}
+}
+function updateSpawnVisual() {
+spawnElement.setAttribute("transform", `translate(${spawnPoint.x}, ${spawnPoint.y})`);
+}
+function generateBlockId() {
+return "blk_" + (blockCounter++) + "_" + Math.floor(Math.random()*1000);
+}
+function placeBlock(type, x, y) {
+deleteBlockAt(x, y);
+let id = generateBlockId();
+let g = document.createElementNS(svgNS, "g");
+g.setAttribute("transform", `translate(${x}, ${y})`);
+g.innerHTML = tileDefs[type] || tileDefs['grass'];
+tilesGroup.appendChild(g);
+blocks[id] = { id: id, type: type, x: x, y: y, element: g };
+return id;
+}
+function deleteBlockAt(x, y) {
+for(let id in blocks) {
+if (blocks[id].x === x && blocks[id].y === y) {
+if(blocks[id].element) blocks[id].element.remove();
+delete blocks[id];
+}
+}
+}
+toolBtns.forEach(btn => {
+btn.addEventListener('click', () => {
+if(btn.dataset.tool) {
+toolBtns.forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+currentTool = btn.dataset.tool;
+svgCanvas.classList.remove('panning', 'info-mode');
+if(currentTool === 'camera') svgCanvas.classList.add('panning');
+if(currentTool === 'info') svgCanvas.classList.add('info-mode');
+}
+});
+});
+function getRealCoords(evt) {
+let cx = evt.clientX, cy = evt.clientY;
+if (evt.touches && evt.touches.length > 0) {
+cx = evt.touches[0].clientX;
+cy = evt.touches[0].clientY;
+}
+const pt = svgCanvas.createSVGPoint();
+pt.x = cx;
+pt.y = cy;
+const ctm = svgCanvas.getScreenCTM();
+let svgP = ctm ? pt.matrixTransform(ctm.inverse()) : {x:0, y:0};
+return { x: svgP.x, y: svgP.y, rawX: cx, rawY: cy };
+}
+function updateCameraView() {
+camX = Math.max(0, Math.min(camX, COLS * TILE_SIZE - VIEW_W));
+camY = Math.max(0, Math.min(camY, ROWS * TILE_SIZE - VIEW_H));
+svgCanvas.setAttribute("viewBox", `${camX} ${camY} ${VIEW_W} ${VIEW_H}`);
+}
+function interact(evt) {
+if (!isEditMode) return;
+const coords = getRealCoords(evt);
+if (currentTool === 'camera') {
+if (isPanning) {
+const rect = svgCanvas.getBoundingClientRect();
+const scale = Math.max(VIEW_W / rect.width, VIEW_H / rect.height);
+camX -= (coords.rawX - lastMouseX) * scale;
+camY -= (coords.rawY - lastMouseY) * scale;
+updateCameraView();
+lastMouseX = coords.rawX;
+lastMouseY = coords.rawY;
+}
+return;
+}
+if (currentTool === 'info') return;
+const col = Math.floor(coords.x / TILE_SIZE);
+const row = Math.floor(coords.y / TILE_SIZE);
+const bx = col * TILE_SIZE;
+const by = row * TILE_SIZE;
+if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+if (currentTool === 'spawn') {
+spawnPoint.x = bx;
+spawnPoint.y = by;
+updateSpawnVisual();
+} else if (currentTool === 'eraser') {
+deleteBlockAt(bx, by);
+} else {
+let exists = false;
+for(let id in blocks) {
+if (blocks[id].x === bx && blocks[id].y === by && blocks[id].type === currentTool) exists = true;
+}
+if(!exists) placeBlock(currentTool, bx, by);
+}
+}
+function handlePointerDown(e) {
+if (e.target.closest('#mobile-controls') || e.target.closest('#toolbar') || e.target.closest('#script-modal')) return;
+const coords = getRealCoords(e);
+if (currentTool === 'camera') {
+isPanning = true;
+lastMouseX = coords.rawX;
+lastMouseY = coords.rawY;
+} else {
+isDrawing = true;
+interact(e);
+}
+}
+function handlePointerMove(e) {
+if (isDrawing || isPanning) interact(e);
+if (currentTool === 'info' && isEditMode) {
+const coords = getRealCoords(e);
+let found = null;
+for(let id in blocks) {
+if (coords.x >= blocks[id].x && coords.x <= blocks[id].x + TILE_SIZE && coords.y >= blocks[id].y && coords.y <= blocks[id].y + TILE_SIZE) {
+found = blocks[id];
+break;
+}
+}
+if (found) {
+tooltip.style.display = 'block';
+tooltip.style.left = (e.clientX + 15) + 'px';
+tooltip.style.top = (e.clientY + 15) + 'px';
+tooltip.innerHTML = `ID: ${found.id}<br>Type: ${found.type}`;
+} else {
+tooltip.style.display = 'none';
+}
+} else {
+tooltip.style.display = 'none';
+}
+}
+function handlePointerUp() {
+isDrawing = false;
+isPanning = false;
+}
+svgCanvas.addEventListener('mousedown', handlePointerDown);
+window.addEventListener('mousemove', handlePointerMove);
+window.addEventListener('mouseup', handlePointerUp);
+svgCanvas.addEventListener('touchstart', (e) => {
+if(isEditMode && !e.target.closest('#toolbar')) e.preventDefault();
+handlePointerDown(e);
+}, { passive: false });
+window.addEventListener('touchmove', (e) => {
+if((isDrawing || isPanning) && isEditMode) e.preventDefault();
+handlePointerMove(e);
+}, { passive: false });
+window.addEventListener('touchend', handlePointerUp);
+window.addEventListener('keydown', (e) => {
+if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+});
+window.addEventListener('keyup', (e) => {
+if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+});
+const handleMobileControls = (e) => {
+if (isEditMode) return;
+keys.ArrowLeft = false;
+keys.ArrowRight = false;
+keys.ArrowUp = false;
+for (let i = 0; i < e.touches.length; i++) {
+const t = document.elementFromPoint(e.touches[i].clientX, e.touches[i].clientY);
+if (!t) continue;
+if (t.id === 'btn-left' || t.closest('#btn-left')) keys.ArrowLeft = true;
+if (t.id === 'btn-right' || t.closest('#btn-right')) keys.ArrowRight = true;
+if (t.id === 'btn-jump' || t.closest('#btn-jump')) keys.ArrowUp = true;
+}
+};
+mobileControls.addEventListener('touchstart', (e) => {
+e.preventDefault();
+handleMobileControls(e);
+}, { passive: false });
+mobileControls.addEventListener('touchmove', (e) => {
+e.preventDefault();
+handleMobileControls(e);
+}, { passive: false });
+mobileControls.addEventListener('touchend', (e) => {
+e.preventDefault();
+handleMobileControls(e);
+}, { passive: false });
+const setupMouseControl = (id, keyName) => {
+const btn = document.getElementById(id);
+btn.addEventListener('mousedown', (e) => {
+if (isEditMode) return;
+e.preventDefault();
+keys[keyName] = true;
+});
+btn.addEventListener('mouseup', () => keys[keyName] = false);
+btn.addEventListener('mouseleave', () => keys[keyName] = false);
+};
+setupMouseControl('btn-left', 'ArrowLeft');
+setupMouseControl('btn-right', 'ArrowRight');
+setupMouseControl('btn-jump', 'ArrowUp');
+let currentlyTouching = new Set();
+let globalNewTouching = new Set();
+modeBtn.addEventListener('click', () => {
+isEditMode = !isEditMode;
+if (isEditMode) {
+modeBtn.textContent = "Играть";
+modeBtn.classList.remove('play');
+svgCanvas.classList.remove('playing');
+if(currentTool === 'camera') svgCanvas.classList.add('panning');
+gridGroup.style.display = "block";
+spawnElement.style.display = "block";
+player.element.style.display = "none";
+mobileControls.classList.remove('active');
+cancelAnimationFrame(gameLoopId);
+if (levelBackup) {
+tilesGroup.innerHTML = '';
+blocks = {};
+let parsed = JSON.parse(levelBackup);
+parsed.forEach(b => {
+let g = document.createElementNS(svgNS, "g");
+g.setAttribute("transform", `translate(${b.x}, ${b.y})`);
+g.innerHTML = tileDefs[b.type];
+tilesGroup.appendChild(g);
+blocks[b.id] = { id: b.id, type: b.type, x: b.x, y: b.y, element: g };
+});
+levelBackup = null;
+}
+document.getElementById('lua-console').innerHTML = '<div class="console-sys">Система: Режим редактора</div>';
+} else {
+modeBtn.textContent = "Редактор";
+modeBtn.classList.add('play');
+svgCanvas.classList.add('playing', 'info-mode');
+svgCanvas.classList.remove('panning', 'info-mode');
+gridGroup.style.display = "none";
+spawnElement.style.display = "none";
+player.element.style.display = "block";
+mobileControls.classList.add('active');
+levelBackup = JSON.stringify(Object.values(blocks).map(b => ({id: b.id, type: b.type, x: b.x, y: b.y})));
+resetPlayer();
+currentlyTouching.clear();
+runLua(document.getElementById('script-editor').value);
+luaCall('OnStart');
+gameLoop();
+}
+});
+function resetPlayer() {
+player.x = spawnPoint.x + (TILE_SIZE - player.width) / 2;
+player.y = spawnPoint.y + (TILE_SIZE - player.height) / 2;
+player.vx = 0;
+player.vy = 0;
+player.gravity = 0.6;
+player.speed = 6;
+player.jumpPower = -14;
+updatePlayerVisual();
+}
+function updatePlayerVisual() {
+if (player.vx < -0.1) player.facing = -1;
+else if (player.vx > 0.1) player.facing = 1;
+player.element.setAttribute("transform", `translate(${player.x}, ${player.y}) translate(${player.width/2}, 0) scale(${player.facing}, 1) translate(${-player.width/2}, 0)`);
+}
+function getAABB(x, y, w, h) {
+return { left: x, right: x + w, top: y, bottom: y + h };
+}
+function checkCollision(r1, r2) {
+return r1.left < r2.right && r1.right > r2.left && r1.top < r2.bottom && r1.bottom > r2.top;
+}
+function gameLoop() {
+if (isEditMode) return;
+luaCall('OnTick');
+if (keys.ArrowLeft || keys.a || keys['ф']) player.vx -= 1;
+if (keys.ArrowRight || keys.d || keys['в']) player.vx += 1;
+player.vx *= player.friction;
+if (Math.abs(player.vx) > player.speed) player.vx = Math.sign(player.vx) * player.speed;
+if ((keys.ArrowUp || keys.w || keys['ц']) && player.grounded) {
+player.vy = player.jumpPower;
+player.grounded = false;
+}
+player.vy += player.gravity;
+if (player.vy > 25) player.vy = 25;
+globalNewTouching.clear();
+player.x += player.vx;
+handleCollisions('x');
+player.y += player.vy;
+player.grounded = false;
+handleCollisions('y');
+for(let id of globalNewTouching) {
+if(!currentlyTouching.has(id)) {
+if (blocks[id]) {
+if (blocks[id].type === 'trigger') luaCall('OnTrigger', id);
+else luaCall('OnTouch', id);
+}
+}
+}
+currentlyTouching = new Set(globalNewTouching);
+if (player.y > ROWS * TILE_SIZE + 200) {
+luaCall('OnDeath');
+resetPlayer();
+}
+updatePlayerVisual();
+camX = player.x - VIEW_W / 2 + player.width / 2;
+camY = player.y - VIEW_H / 2 + player.height / 2;
+updateCameraView();
+gameLoopId = requestAnimationFrame(gameLoop);
+}
+function handleCollisions(axis) {
+let pBox = getAABB(player.x, player.y, player.width, player.height);
+let nearby = [];
+for(let key in blocks) {
+let b = blocks[key];
+if(Math.abs(b.x - player.x) < 150 && Math.abs(b.y - player.y) < 150) nearby.push(b);
+}
+for (let b of nearby) {
+let tBox = getAABB(b.x, b.y, TILE_SIZE, TILE_SIZE);
+if (b.type === 'spike') tBox = getAABB(b.x + 8, b.y + 20, TILE_SIZE - 16, TILE_SIZE - 20);
+if (checkCollision(pBox, tBox)) {
+globalNewTouching.add(b.id);
+if (b.type === 'trigger') continue;
+if (b.type === 'spike') {
+luaCall('OnDeath');
+resetPlayer();
+return;
+}
+if (axis === 'x') {
+if (player.vx > 0) player.x = tBox.left - player.width;
+else if (player.vx < 0) player.x = tBox.right;
+player.vx = 0;
+pBox = getAABB(player.x, player.y, player.width, player.height);
+} else if (axis === 'y') {
+if (player.vy > 0) {
+player.y = tBox.top - player.height;
+player.grounded = true;
+} else if (player.vy < 0) player.y = tBox.bottom;
+player.vy = 0;
+pBox = getAABB(player.x, player.y, player.width, player.height);
+}
+}
+}
+}
+function openScripts() { document.getElementById('script-modal').style.display = 'flex'; }
+function closeScripts() { document.getElementById('script-modal').style.display = 'none'; }
+window.lua_spawn = function(type, x, y) { return placeBlock(type, x, y); };
+window.lua_delete = function(id) { deleteBlockAt(blocks[id]?.x, blocks[id]?.y); };
+window.lua_move_to = function(id, x, y) {
+if(blocks[id]) {
+blocks[id].x = x;
+blocks[id].y = y;
+blocks[id].element.setAttribute("transform", `translate(${x}, ${y})`);
+}
+};
+window.lua_move_by = function(id, dx, dy) {
+if(blocks[id]) {
+blocks[id].x += dx;
+blocks[id].y += dy;
+blocks[id].element.setAttribute("transform", `translate(${blocks[id].x}, ${blocks[id].y})`);
+}
+};
+window.lua_set_color = function(id, color) {
+if(blocks[id]) {
+let els = blocks[id].element.querySelectorAll('.c-shape, rect, path, circle');
+els.forEach(el => el.setAttribute("fill", color));
+}
+};
+window.lua_get_x = function(id) { return blocks[id] ? blocks[id].x : 0; };
+window.lua_get_y = function(id) { return blocks[id] ? blocks[id].y : 0; };
+window.lua_get_type = function(id) { return blocks[id] ? blocks[id].type : ""; };
+window.lua_player_jump = function(p) { player.vy = -Math.abs(p); player.grounded = false; };
+window.lua_player_kill = function() { luaCall('OnDeath'); resetPlayer(); };
+window.lua_player_set_pos = function(x, y) { player.x = x; player.y = y; };
+window.lua_print = function(msg) {
+const c = document.getElementById('lua-console');
+c.innerHTML += `<div class="console-msg">> ${msg}</div>`;
+c.scrollTop = c.scrollHeight;
+};
+function runLua(userScript) {
+const consoleEl = document.getElementById('lua-console');
+consoleEl.innerHTML = '<div class="console-sys">Система: Компиляция Lua...</div>';
+const wrapper = `
 local js = require "js"
 local global = js.global
-
 function spawn(t, x, y) return global:lua_spawn(t, x, y) end
 function delete(id) global:lua_delete(id) end
 function move_to(id, x, y) global:lua_move_to(id, x, y) end
@@ -777,7 +561,6 @@ function set_color(id, c) global:lua_set_color(id, c) end
 function get_x(id) return global:lua_get_x(id) end
 function get_y(id) return global:lua_get_y(id) end
 function get_type(id) return global:lua_get_type(id) end
-
 function player_jump(p) global:lua_player_jump(p) end
 function player_kill() global:lua_player_kill() end
 function player_set_pos(x, y) global:lua_player_set_pos(x, y) end
@@ -785,51 +568,98 @@ function player_get_x() return global.player.x end
 function player_get_y() return global.player.y end
 function set_gravity(g) global.player.gravity = tonumber(g) or 0.6 end
 function set_speed(s) global.player.speed = tonumber(s) or 6 end
-
-function print(...) 
-    local args = {...}
-    local str = ""
-    for i, v in ipairs(args) do 
-        str = str .. tostring(v) .. (i < #args and "\\t" or "")
-    end
-    global:lua_print(str) 
+function print(...)
+local args = {...}
+local str = ""
+for i, v in ipairs(args) do
+str = str .. tostring(v) .. (i < #args and "\\t" or "")
 end
-
+global:lua_print(str)
+end
 ${userScript}
-            `;
-            
-            try {
-                if (window.fengari) {
-                    window.fengari.load(wrapper)();
-                    consoleEl.innerHTML += '<div class="console-sys">Система: Скрипт успешно запущен</div>';
-                } else {
-                    consoleEl.innerHTML += '<div class="console-err">Ошибка: Fengari VM не загружен. Проверьте интернет.</div>';
-                }
-            } catch (e) {
-                consoleEl.innerHTML += `<div class="console-err">Lua Ошибка: ${e.message}</div>`;
-            }
-        }
+`;
+try {
+if (window.fengari) {
+window.fengari.load(wrapper)();
+consoleEl.innerHTML += '<div class="console-sys">Система: Скрипт успешно запущен</div>';
+} else {
+consoleEl.innerHTML += '<div class="console-err">Ошибка: Fengari VM не загружен. Проверьте интернет.</div>';
+}
+} catch (e) {
+consoleEl.innerHTML += `<div class="console-err">Lua Ошибка: ${e.message}</div>`;
+}
+}
+function luaCall(funcName, arg) {
+if (!window.fengari) return;
+try {
+let argStr = typeof arg === 'string' ? `"${arg}"` : arg;
+if (arg === undefined) argStr = "";
+let callCode = `if type(${funcName}) == "function" then ${funcName}(${argStr}) end`;
+window.fengari.load(callCode)();
+} catch (e) {}
+}
+initGrid();
+const initialGroundY = 12;
+for (let i = 0; i < 50; i++) {
+placeBlock('grass', i * TILE_SIZE, initialGroundY * TILE_SIZE);
+for(let j = initialGroundY + 1; j < initialGroundY + 5; j++) {
+placeBlock('dirt', i * TILE_SIZE, j * TILE_SIZE);
+}
+}
+updateCameraView();
 
-        function luaCall(funcName, arg) {
-            if (!window.fengari) return;
-            try {
-                let argStr = typeof arg === 'string' ? `"${arg}"` : arg;
-                if (arg === undefined) argStr = "";
-                let callCode = `if type(${funcName}) == "function" then ${funcName}(${argStr}) end`;
-                window.fengari.load(callCode)();
-            } catch (e) {
-            }
-        }
+document.getElementById('exportBtn').addEventListener('click', () => {
+const data = {
+blocks: Object.values(blocks).map(b => ({id: b.id, type: b.type, x: b.x, y: b.y})),
+spawnPoint: spawnPoint,
+script: document.getElementById('script-editor').value,
+blockCounter: blockCounter
+};
+const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = "export.zbg";
+a.click();
+URL.revokeObjectURL(url);
+});
 
-        initGrid();
-        const initialGroundY = 12;
-        for (let i = 0; i < 50; i++) {
-            placeBlock('grass', i * TILE_SIZE, initialGroundY * TILE_SIZE);
-            for(let j = initialGroundY + 1; j < initialGroundY + 5; j++) {
-                placeBlock('dirt', i * TILE_SIZE, j * TILE_SIZE);
-            }
-        }
-        updateCameraView();
-    </script>
+document.getElementById('importBtn').addEventListener('click', () => {
+document.getElementById('importFile').click();
+});
+
+document.getElementById('importFile').addEventListener('change', (e) => {
+const file = e.target.files[0];
+if (!file) return;
+if (!isEditMode) modeBtn.click();
+const reader = new FileReader();
+reader.onload = (ev) => {
+try {
+const data = JSON.parse(ev.target.result);
+tilesGroup.innerHTML = '';
+blocks = {};
+if (data.blockCounter) blockCounter = data.blockCounter;
+if (data.spawnPoint) {
+spawnPoint = data.spawnPoint;
+updateSpawnVisual();
+}
+if (data.script !== undefined) {
+document.getElementById('script-editor').value = data.script;
+}
+if (data.blocks) {
+data.blocks.forEach(b => {
+let g = document.createElementNS(svgNS, "g");
+g.setAttribute("transform", `translate(${b.x}, ${b.y})`);
+g.innerHTML = tileDefs[b.type] || tileDefs['grass'];
+tilesGroup.appendChild(g);
+blocks[b.id] = { id: b.id, type: b.type, x: b.x, y: b.y, element: g };
+});
+}
+} catch(err) {}
+};
+reader.readAsText(file);
+e.target.value = '';
+});
+</script>
 </body>
 </html>
