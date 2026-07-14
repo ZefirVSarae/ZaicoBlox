@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -238,11 +239,17 @@ const ctm = svgCanvas.getScreenCTM();
 let svgP = ctm ? pt.matrixTransform(ctm.inverse()) : {x:0, y:0};
 return { x: svgP.x, y: svgP.y, rawX: cx, rawY: cy };
 }
+
 function updateCameraView() {
-camX = Math.max(0, Math.min(camX, COLS * TILE_SIZE - VIEW_W));
-camY = Math.max(0, Math.min(camY, ROWS * TILE_SIZE - VIEW_H));
+// ИСПРАВЛЕНИЕ: Даем возможность двигать камеру в минус и отменяем жесткие рамки в режиме игры.
+if (isEditMode) {
+camX = Math.max(-VIEW_W + 100, Math.min(camX, COLS * TILE_SIZE - 100));
+camY = Math.max(-VIEW_H + 100, Math.min(camY, ROWS * TILE_SIZE - 100));
+}
+// В режиме игры переменные camX и camY будут приходить прямо из координат персонажа, без лимитов
 svgCanvas.setAttribute("viewBox", `${camX} ${camY} ${VIEW_W} ${VIEW_H}`);
 }
+
 function interact(evt) {
 if (!isEditMode) return;
 const coords = getRealCoords(evt);
@@ -663,3 +670,5 @@ e.target.value = '';
 </script>
 </body>
 </html>
+
+```
