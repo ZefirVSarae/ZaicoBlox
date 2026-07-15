@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ZaicoBloxDemo</title>
+<title>ZaicoBloxDemo - GUI & Wait Update</title>
 <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
 <style>
 body { margin: 0; padding: 0; background: #1e1e24; color: #fff; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; user-select: none; touch-action: none; }
@@ -18,11 +18,12 @@ body { margin: 0; padding: 0; background: #1e1e24; color: #fff; font-family: 'Se
 .mode-btn.play { background: #ff0055; }
 .mode-btn.play:hover { background: #cc0044; }
 #game-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; width: 100%; overflow: hidden; background: #121216; position: relative; }
-svg { background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%); width: 100%; height: 100%; cursor: crosshair; }
+svg { background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%); width: 100%; height: 100%; cursor: crosshair; position: relative; z-index: 1; }
 svg.playing { cursor: default; }
 svg.panning { cursor: grab; }
 svg.panning:active { cursor: grabbing; }
 svg.info-mode { cursor: help; }
+#gui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; overflow: hidden; }
 #mobile-controls { position: absolute; bottom: calc(clamp(15px, 5vh, 40px) + 150px); left: 0; width: 100%; display: none; justify-content: space-between; padding: 0 clamp(15px, 5vw, 40px); box-sizing: border-box; z-index: 20; pointer-events: none; }
 #mobile-controls.active { display: flex; }
 .controls-group { display: flex; gap: clamp(10px, 3vw, 25px); }
@@ -35,7 +36,7 @@ svg.info-mode { cursor: help; }
 .close-btn { background: #ff0055; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 .close-btn:hover { background: #cc0044; }
 #script-body { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
-#api-reference { flex: 1; background: #1a1a20; color: #d1d1d1; padding: 15px; overflow-y: auto; border-right: 2px solid #2b2b36; font-size: 13px; line-height: 1.4; }
+#api-reference { flex: 1.2; background: #1a1a20; color: #d1d1d1; padding: 15px; overflow-y: auto; border-right: 2px solid #2b2b36; font-size: 13px; line-height: 1.4; }
 #api-reference h4 { margin-top: 0; color: #8b5cf6; font-size: 16px; margin-bottom: 10px; }
 #api-reference h5 { color: #00d4ff; margin: 15px 0 5px 0; font-size: 14px; }
 .api-item { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #2b2b36; }
@@ -66,6 +67,7 @@ svg.info-mode { cursor: help; }
 </div>
 <div id="game-container">
 <svg id="gameCanvas" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice"></svg>
+<div id="gui-layer"></div>
 <div id="mobile-controls">
 <div class="controls-group">
 <div class="m-btn" id="btn-left">◀</div>
@@ -86,33 +88,47 @@ svg.info-mode { cursor: help; }
 <div id="script-body">
 <div id="api-reference">
 <h4>Справочник API</h4>
-<h5>Управление блоками</h5>
-<div class="api-item"><span class="api-code">spawn(type, x, y)</span> Создает блок. Типы: "grass", "dirt", "spike", "trigger". </div>
-<div class="api-item"><span class="api-code">delete(id)</span> Удаляет блок по ID. </div>
-<div class="api-item"><span class="api-code">move_to(id, x, y)</span> Телепортирует блок. </div>
-<div class="api-item"><span class="api-code">move_by(id, dx, dy)</span> Сдвигает блок. </div>
-<div class="api-item"><span class="api-code">set_color(id, hexColor)</span> Меняет цвет. Пример: "#ff0000". </div>
-<div class="api-item"><span class="api-code">get_x(id) / get_y(id)</span> Возвращает координаты блока. </div>
-<div class="api-item"><span class="api-code">get_type(id)</span> Возвращает тип блока в виде строки. </div>
-<h5>Управление игроком</h5>
-<div class="api-item"><span class="api-code">player_jump(power)</span> Прыжок. </div>
-<div class="api-item"><span class="api-code">player_kill()</span> Убивает игрока. </div>
-<div class="api-item"><span class="api-code">player_set_pos(x, y)</span> Перемещает игрока. </div>
-<div class="api-item"><span class="api-code">player_get_x() / player_get_y()</span> Координаты игрока. </div>
-<div class="api-item"><span class="api-code">set_speed(speed)</span> Скорость бега. </div>
-<div class="api-item"><span class="api-code">set_gravity(grav)</span> Гравитация. </div>
-<h5>События</h5>
+
+<h5>Ожидание</h5>
+<div class="api-item"><span class="api-code">wait(sec)</span> Приостанавливает выполнение скрипта на sec секунд.</div>
+
+<h5>GUI</h5>
+<div class="api-item"><span class="api-code">create_text(name, text, x, y, size, color)</span> Создает текст на экране.</div>
+<div class="api-item"><span class="api-code">create_frame(name, x, y, w, h, color)</span> Создает фон/блок интерфейса.</div>
+<div class="api-item"><span class="api-code">create_button(name, text, x, y, w, h, color)</span> Создает кликабельную кнопку.</div>
+<div class="api-item"><span class="api-code">update_text(name, text, x, y, size, color)</span> Обновляет параметры текста.</div>
+<div class="api-item"><span class="api-code">update_frame(name, x, y, w, h, color)</span> Обновляет параметры фрейма/кнопки.</div>
+<div class="api-item"><span class="api-code">set_visible(name, visible)</span> Скрывает или показывает элемент (true/false).</div>
+<div class="api-item"><span class="api-code">delete_text(name) / delete_frame(name)</span> Удаляет элемент GUI с экрана.</div>
+<div class="api-item"><span class="api-code">function OnGuiClick(name)</span> Событие: вызывается при клике по кнопке.</div>
+
+<h5>События игры</h5>
 <div class="api-item"><span class="api-code">function OnStart()</span> Вызывается 1 раз при старте. </div>
 <div class="api-item"><span class="api-code">function OnTick()</span> Вызывается каждый кадр. </div>
 <div class="api-item"><span class="api-code">function OnTouch(id)</span> Касание физ. блока. </div>
 <div class="api-item"><span class="api-code">function OnTrigger(id)</span> Касание trigger-блока. </div>
 <div class="api-item"><span class="api-code">function OnDeath()</span> Смерть игрока. </div>
-<h5>Прочее</h5>
+
+<h5>Управление блоками</h5>
+<div class="api-item"><span class="api-code">spawn(type, x, y)</span> Создает блок. Типы: "grass", "dirt", "spike", "trigger". </div>
+<div class="api-item"><span class="api-code">delete(id)</span> Удаляет блок по ID. </div>
+<div class="api-item"><span class="api-code">move_to(id, x, y) / move_by(id, dx, dy)</span> Движение блоков. </div>
+<div class="api-item"><span class="api-code">set_color(id, hexColor)</span> Меняет цвет. Пример: "#ff0000". </div>
+<div class="api-item"><span class="api-code">get_x(id) / get_y(id) / get_type(id)</span> Инфо о блоке. </div>
+
+<h5>Управление игроком</h5>
+<div class="api-item"><span class="api-code">player_jump(power)</span> Прыжок. </div>
+<div class="api-item"><span class="api-code">player_kill()</span> Убивает игрока. </div>
+<div class="api-item"><span class="api-code">player_set_pos(x, y)</span> Телепорт. </div>
+<div class="api-item"><span class="api-code">player_get_x() / player_get_y()</span> Координаты игрока. </div>
+<div class="api-item"><span class="api-code">set_speed(speed) / set_gravity(grav)</span> Физика игрока. </div>
 <div class="api-item"><span class="api-code">print("текст")</span> Пишет в консоль. </div>
 </div>
-<textarea id="script-editor" spellcheck="false"></textarea>
+<textarea id="script-editor" spellcheck="false">
+    -- Сотри меня и напиши скрипт!
+</textarea>
 <div id="lua-console">
-<div class="console-sys">Система: Изолированная песочница готова</div>
+<div class="console-sys">Луа готов! Для команд смотри справочник.</div>
 </div>
 </div>
 </div>
@@ -120,6 +136,7 @@ svg.info-mode { cursor: help; }
 <script>
 const svgNS = "http://www.w3.org/2000/svg";
 const svgCanvas = document.getElementById('gameCanvas');
+const guiLayer = document.getElementById('gui-layer');
 const modeBtn = document.getElementById('modeBtn');
 const toolBtns = document.querySelectorAll('.tool-btn');
 const mobileControls = document.getElementById('mobile-controls');
@@ -363,6 +380,10 @@ modeBtn.addEventListener('click', () => {
         mobileControls.classList.remove('active');
         cancelAnimationFrame(gameLoopId);
         
+        // Очищаем GUI и потоки
+        window.clear_all_gui();
+        if(window.fengari) window.fengari.load("_G._active_threads = {}")();
+        
         if (levelBackup) {
             tilesGroup.innerHTML = '';
             blocks = {};
@@ -372,7 +393,6 @@ modeBtn.addEventListener('click', () => {
                 g.setAttribute("transform", `translate(${b.x}, ${b.y})`);
                 g.innerHTML = tileDefs[b.type];
                 tilesGroup.appendChild(g);
-                // ID на 100% сохраняются оригинальными
                 blocks[b.id] = { id: b.id, type: b.type, x: b.x, y: b.y, element: g };
             });
             levelBackup = null;
@@ -414,6 +434,11 @@ function checkCollision(r1, r2) { return r1.left < r2.right && r1.right > r2.lef
 
 function gameLoop() {
     if (isEditMode) return;
+    
+    // Тик для Lua корутин (wait)
+    if (window.fengari) {
+        window.fengari.load("if _G.tick_threads then _G.tick_threads() end")();
+    }
     luaCall('OnTick');
     
     if (keys.ArrowLeft || keys.a || keys['ф']) player.vx -= 1;
@@ -480,6 +505,8 @@ function handleCollisions(axis) {
 function openScripts() { document.getElementById('script-modal').style.display = 'flex'; }
 function closeScripts() { document.getElementById('script-modal').style.display = 'none'; }
 
+// JS-функции для Lua
+window.lua_now = function() { return performance.now() / 1000; };
 window.lua_spawn = function(type, x, y) { return placeBlock(type, x, y); };
 window.lua_delete = function(id) { deleteBlockAt(blocks[id]?.x, blocks[id]?.y); };
 window.lua_move_to = function(id, x, y) {
@@ -506,6 +533,82 @@ window.lua_print = function(msg) {
     c.scrollTop = c.scrollHeight;
 };
 
+// --- GUI API ---
+let guiElements = {};
+window.clear_all_gui = function() {
+    guiLayer.innerHTML = '';
+    guiElements = {};
+};
+
+window.lua_create_text = function(name, text, x, y, size, color) {
+    if(!name) return;
+    if(guiElements[name]) window.lua_delete_gui(name);
+    let el = document.createElement('div');
+    el.style.position = 'absolute'; el.style.left = (x || 0) + 'px'; el.style.top = (y || 0) + 'px';
+    el.style.fontSize = (size || 20) + 'px'; el.style.color = color || 'white';
+    el.style.fontWeight = 'bold'; el.style.pointerEvents = 'none';
+    el.style.fontFamily = 'monospace'; el.style.userSelect = 'none';
+    el.style.textShadow = '1px 1px 2px black';
+    el.innerText = text || '';
+    guiLayer.appendChild(el); guiElements[name] = el;
+};
+
+window.lua_create_frame = function(name, x, y, w, h, color) {
+    if(!name) return;
+    if(guiElements[name]) window.lua_delete_gui(name);
+    let el = document.createElement('div');
+    el.style.position = 'absolute'; el.style.left = (x || 0) + 'px'; el.style.top = (y || 0) + 'px';
+    el.style.width = (w || 100) + 'px'; el.style.height = (h || 100) + 'px';
+    el.style.backgroundColor = color || 'rgba(0,0,0,0.5)';
+    el.style.pointerEvents = 'none';
+    guiLayer.appendChild(el); guiElements[name] = el;
+};
+
+window.lua_create_button = function(name, text, x, y, w, h, color) {
+    if(!name) return;
+    if(guiElements[name]) window.lua_delete_gui(name);
+    let el = document.createElement('button');
+    el.style.position = 'absolute'; el.style.left = (x || 0) + 'px'; el.style.top = (y || 0) + 'px';
+    el.style.width = (w || 100) + 'px'; el.style.height = (h || 40) + 'px';
+    el.style.backgroundColor = color || '#007bff'; el.style.color = 'white';
+    el.style.border = '2px solid rgba(255,255,255,0.2)'; el.style.borderRadius = '5px';
+    el.style.pointerEvents = 'auto'; el.style.cursor = 'pointer';
+    el.style.fontWeight = 'bold'; el.innerText = text || '';
+    el.onclick = () => luaCall('OnGuiClick', name);
+    guiLayer.appendChild(el); guiElements[name] = el;
+};
+
+window.lua_update_text = function(name, text, x, y, size, color) {
+    let el = guiElements[name];
+    if(el) {
+        if(text !== undefined && text !== null) el.innerText = text;
+        if(x !== undefined && x !== null) el.style.left = x + 'px';
+        if(y !== undefined && y !== null) el.style.top = y + 'px';
+        if(size !== undefined && size !== null) el.style.fontSize = size + 'px';
+        if(color !== undefined && color !== null) el.style.color = color;
+    }
+};
+
+window.lua_update_frame = function(name, x, y, w, h, color) {
+    let el = guiElements[name];
+    if(el) {
+        if(x !== undefined && x !== null) el.style.left = x + 'px';
+        if(y !== undefined && y !== null) el.style.top = y + 'px';
+        if(w !== undefined && w !== null) el.style.width = w + 'px';
+        if(h !== undefined && h !== null) el.style.height = h + 'px';
+        if(color !== undefined && color !== null) el.style.backgroundColor = color;
+    }
+};
+
+window.lua_set_visible = function(name, vis) {
+    let el = guiElements[name];
+    if(el) el.style.display = vis ? 'block' : 'none';
+};
+
+window.lua_delete_gui = function(name) {
+    if(guiElements[name]) { guiElements[name].remove(); delete guiElements[name]; }
+};
+
 // БЕЗОПАСНЫЙ И ИЗОЛИРОВАННЫЙ ЗАПУСК LUA
 function runLua(userScript) {
     const consoleEl = document.getElementById('lua-console');
@@ -516,6 +619,38 @@ function runLua(userScript) {
         local js = require "js"
         local global = js.global
         
+        _G._active_threads = {}
+        
+        _G.spawn_thread = function(func, arg)
+            local co = coroutine.create(func)
+            _G.resume_thread(co, arg)
+        end
+        
+        _G.resume_thread = function(co, arg)
+            local success, req
+            if arg ~= nil then success, req = coroutine.resume(co, arg)
+            else success, req = coroutine.resume(co) end
+            
+            if success and coroutine.status(co) == "suspended" then
+                if type(req) == "table" and req.type == "wait" then
+                    table.insert(_G._active_threads, {co=co, wake_time = global:lua_now() + req.time})
+                end
+            elseif not success then
+                global:lua_print("Ошибка: " .. tostring(req))
+            end
+        end
+        
+        _G.tick_threads = function()
+            local now = global:lua_now()
+            for i = #_G._active_threads, 1, -1 do
+                local t = _G._active_threads[i]
+                if now >= t.wake_time then
+                    table.remove(_G._active_threads, i)
+                    _G.resume_thread(t.co)
+                end
+            end
+        end
+
         _G.lua_api = {
             spawn = function(t, x, y) return global:lua_spawn(t, x, y) end,
             delete = function(id) global:lua_delete(id) end,
@@ -538,12 +673,25 @@ function runLua(userScript) {
                 for i, v in ipairs(args) do str = str .. tostring(v) .. (i < #args and "\\t" or "") end
                 global:lua_print(str)
             end,
+            
+            -- GUI API
+            create_text = function(name, text, x, y, size, color) global:lua_create_text(name, text, x, y, size, color) end,
+            create_frame = function(name, x, y, w, h, color) global:lua_create_frame(name, x, y, w, h, color) end,
+            create_button = function(name, text, x, y, w, h, color) global:lua_create_button(name, text, x, y, w, h, color) end,
+            update_text = function(name, text, x, y, size, color) global:lua_update_text(name, text, x, y, size, color) end,
+            update_frame = function(name, x, y, w, h, color) global:lua_update_frame(name, x, y, w, h, color) end,
+            set_visible = function(name, vis) global:lua_set_visible(name, vis) end,
+            delete_text = function(name) global:lua_delete_gui(name) end,
+            delete_frame = function(name) global:lua_delete_gui(name) end,
+            delete_gui = function(name) global:lua_delete_gui(name) end,
+            wait = function(sec) coroutine.yield({type="wait", time=sec or 0.1}) end,
+            
             math = math, string = string, table = table,
             pairs = pairs, ipairs = ipairs, tonumber = tonumber,
             tostring = tostring, type = type, pcall = pcall
         }
         
-        -- Убиваем модуль JS для безопасности (Sandbox Escape предотвращен)
+        -- Убиваем модуль JS для безопасности
         package.loaded['js'] = nil
         package.preload['js'] = nil
         local old_req = require
@@ -556,24 +704,21 @@ function runLua(userScript) {
         _G.__secured = true
     end
 
-    -- Создаем АБСОЛЮТНО ЧИСТОЕ окружение для этого запуска
+    _G._active_threads = {}
     _G.__current_env = {}
     for k, v in pairs(_G.lua_api) do
         _G.__current_env[k] = v
     end
     _G.__current_env._G = _G.__current_env
+    _G.__current_env.wait = _G.lua_api.wait
     `;
 
     try {
         if (window.fengari) {
-            // Инициализация песочницы
             window.fengari.load(secureSetupCode)();
-            
-            // Запуск кода пользователя с привязкой к чистому окружению
             const isolatedUserScript = `_ENV = _G.__current_env; \n` + userScript;
             window.fengari.load(isolatedUserScript)();
-            
-            consoleEl.innerHTML += '<div class="console-sys">Система: Скрипт успешно изолирован и запущен.</div>';
+            consoleEl.innerHTML += '<div class="console-sys">Система: Скрипт запущен.</div>';
         } else {
             consoleEl.innerHTML += '<div class="console-err">Ошибка: Fengari VM не загружен. Проверьте интернет.</div>';
         }
@@ -582,15 +727,14 @@ function runLua(userScript) {
     }
 }
 
-// БЕЗОПАСНЫЙ ВЫЗОВ ФУНКЦИЙ ИЗ ПЕСОЧНИЦЫ
+// БЕЗОПАСНЫЙ ВЫЗОВ ФУНКЦИЙ ИЗ ПЕСОЧНИЦЫ ЧЕРЕЗ КОРУТИНЫ
 function luaCall(funcName, arg) {
     if (!window.fengari) return;
     try {
-        let argStr = typeof arg === 'string' ? `"${arg}"` : (arg !== undefined ? arg : "");
+        let argStr = typeof arg === 'string' ? `"${arg}"` : (arg !== undefined ? arg : "nil");
         let callCode = `
             if _G.__current_env and type(_G.__current_env.${funcName}) == "function" then 
-                local success, err = pcall(_G.__current_env.${funcName}, ${argStr})
-                if not success then _G.lua_api.print("Ошибка " .. "${funcName}: " .. tostring(err)) end
+                _G.spawn_thread(_G.__current_env.${funcName}, ${argStr})
             end
         `;
         window.fengari.load(callCode)();
@@ -621,14 +765,12 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
-document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('importFile').click();
-});
+document.getElementById('importBtn').addEventListener('click', () => { document.getElementById('importFile').click(); });
 
 document.getElementById('importFile').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!isEditMode) modeBtn.click(); // Возвращаемся в редактор перед импортом
+    if (!isEditMode) modeBtn.click();
     
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -636,16 +778,9 @@ document.getElementById('importFile').addEventListener('change', (e) => {
             const data = JSON.parse(ev.target.result);
             tilesGroup.innerHTML = '';
             blocks = {};
-            
             if (data.blockCounter) blockCounter = data.blockCounter;
-            
-            if (data.spawnPoint) {
-                spawnPoint = data.spawnPoint;
-                updateSpawnVisual();
-            }
-            if (data.script !== undefined) {
-                document.getElementById('script-editor').value = data.script;
-            }
+            if (data.spawnPoint) { spawnPoint = data.spawnPoint; updateSpawnVisual(); }
+            if (data.script !== undefined) document.getElementById('script-editor').value = data.script;
             if (data.blocks) {
                 data.blocks.forEach(b => {
                     let g = document.createElementNS(svgNS, "g");
@@ -653,8 +788,6 @@ document.getElementById('importFile').addEventListener('change', (e) => {
                     g.innerHTML = tileDefs[b.type] || tileDefs['grass'];
                     tilesGroup.appendChild(g);
                     blocks[b.id] = { id: b.id, type: b.type, x: b.x, y: b.y, element: g };
-                    
-                    // Безопасное обновление счетчика ID при импорте
                     let num = parseInt(b.id.replace("blk_", ""));
                     if (!isNaN(num) && num > blockCounter) blockCounter = num;
                 });
