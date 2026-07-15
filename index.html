@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ZaicoBloxDemo - GUI & Wait Update</title>
+<title>ZaicoBloxDemo</title>
 <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
 <style>
 body { margin: 0; padding: 0; background: #1e1e24; color: #fff; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; user-select: none; touch-action: none; }
@@ -124,9 +124,7 @@ svg.info-mode { cursor: help; }
 <div class="api-item"><span class="api-code">set_speed(speed) / set_gravity(grav)</span> Физика игрока. </div>
 <div class="api-item"><span class="api-code">print("текст")</span> Пишет в консоль. </div>
 </div>
-<textarea id="script-editor" spellcheck="false">
-    -- Сотри меня и напиши скрипт!
-</textarea>
+<textarea id="script-editor" spellcheck="false"></textarea>
 <div id="lua-console">
 <div class="console-sys">Луа готов! Для команд смотри справочник.</div>
 </div>
@@ -157,7 +155,10 @@ let isPanning = false;
 let camX = 0, camY = 0;
 let lastMouseX = 0, lastMouseY = 0;
 let spawnPoint = { x: 120, y: 360 };
+
 const player = { x: 120, y: 360, width: 40, height: 80, vx: 0, vy: 0, speed: 6, jumpPower: -14, gravity: 0.6, friction: 0.8, element: null, grounded: false, facing: 1 };
+window.player = player;
+
 const keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, a: false, d: false, w: false, 'ф': false, 'в': false, 'ц': false };
 let gameLoopId;
 
@@ -318,7 +319,7 @@ function handlePointerMove(e) {
         if (found) {
             tooltip.style.display = 'block';
             tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px';
-            tooltip.innerHTML = `ID: ${found.id}<br>Type: ${found.type}`;
+            tooltip.innerHTML = `ID: ${found.id}<br>Type: ${found.type}<br>X: ${found.x}<br>Y: ${found.y}`;
         } else tooltip.style.display = 'none';
     } else tooltip.style.display = 'none';
 }
@@ -380,7 +381,6 @@ modeBtn.addEventListener('click', () => {
         mobileControls.classList.remove('active');
         cancelAnimationFrame(gameLoopId);
         
-        // Очищаем GUI и потоки
         window.clear_all_gui();
         if(window.fengari) window.fengari.load("_G._active_threads = {}")();
         
@@ -435,7 +435,6 @@ function checkCollision(r1, r2) { return r1.left < r2.right && r1.right > r2.lef
 function gameLoop() {
     if (isEditMode) return;
     
-    // Тик для Lua корутин (wait)
     if (window.fengari) {
         window.fengari.load("if _G.tick_threads then _G.tick_threads() end")();
     }
@@ -505,7 +504,6 @@ function handleCollisions(axis) {
 function openScripts() { document.getElementById('script-modal').style.display = 'flex'; }
 function closeScripts() { document.getElementById('script-modal').style.display = 'none'; }
 
-// JS-функции для Lua
 window.lua_now = function() { return performance.now() / 1000; };
 window.lua_spawn = function(type, x, y) { return placeBlock(type, x, y); };
 window.lua_delete = function(id) { deleteBlockAt(blocks[id]?.x, blocks[id]?.y); };
@@ -533,7 +531,6 @@ window.lua_print = function(msg) {
     c.scrollTop = c.scrollHeight;
 };
 
-// --- GUI API ---
 let guiElements = {};
 window.clear_all_gui = function() {
     guiLayer.innerHTML = '';
@@ -609,7 +606,6 @@ window.lua_delete_gui = function(name) {
     if(guiElements[name]) { guiElements[name].remove(); delete guiElements[name]; }
 };
 
-// БЕЗОПАСНЫЙ И ИЗОЛИРОВАННЫЙ ЗАПУСК LUA
 function runLua(userScript) {
     const consoleEl = document.getElementById('lua-console');
     consoleEl.innerHTML = '<div class="console-sys">Система: Компиляция Sandbox...</div>';
@@ -674,7 +670,6 @@ function runLua(userScript) {
                 global:lua_print(str)
             end,
             
-            -- GUI API
             create_text = function(name, text, x, y, size, color) global:lua_create_text(name, text, x, y, size, color) end,
             create_frame = function(name, x, y, w, h, color) global:lua_create_frame(name, x, y, w, h, color) end,
             create_button = function(name, text, x, y, w, h, color) global:lua_create_button(name, text, x, y, w, h, color) end,
@@ -691,7 +686,6 @@ function runLua(userScript) {
             tostring = tostring, type = type, pcall = pcall
         }
         
-        -- Убиваем модуль JS для безопасности
         package.loaded['js'] = nil
         package.preload['js'] = nil
         local old_req = require
@@ -727,7 +721,6 @@ function runLua(userScript) {
     }
 }
 
-// БЕЗОПАСНЫЙ ВЫЗОВ ФУНКЦИЙ ИЗ ПЕСОЧНИЦЫ ЧЕРЕЗ КОРУТИНЫ
 function luaCall(funcName, arg) {
     if (!window.fengari) return;
     try {
